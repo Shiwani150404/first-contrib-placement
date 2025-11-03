@@ -68,10 +68,10 @@
       </div>
     </div>
   </nav>
-  <header>
+<header>
     <h1>Welcome to Placement Resources!</h1>
     <h3>Find and share the best resources to help students prepare for the placements</h3>
-  </header>
+  </header>  
   <div class="container">
     <h3 class="fade-in">Recommended Resources</h3>
 
@@ -90,15 +90,19 @@
           </div>
         </div>
       </div>
-
+     <div class="autocomplete" style="width:100%;">
       <input type="text" id="searchInput" placeholder="Search for resources..." />
-      <div class="search-icon-container">
-        <svg class="search-icon" viewBox="0 0 24 24">
-          <path
-            d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-        </svg>
-      </div>
+      <div id="autocomplete-list" class="autocomplete-items"></div>
     </div>
+       <div class="search-icon-container">
+    <svg class="search-icon" viewBox="0 0 24 24">
+      <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+    </svg>
+  </div>
+      
+      
+    </div>
+
 
 
     <div class="card fade-in" category="coding">
@@ -396,6 +400,7 @@
     <!-- Back to Top Button -->
 
     <button id="backToTop" title="Go to top">↑</button>
+    <button id="scrollToBottom" title="Go to bottom">↓</button>
 
   </div>
   <footer class="fade-in">
@@ -514,6 +519,9 @@
   </script>
 
 
+  
+
+
   <script>
 
     const searchInput = document.getElementById('searchInput');
@@ -522,6 +530,77 @@
     const toggleBtn = document.getElementById("toggle-mode");
     const backToTopButton = document.getElementById("backToTop");
 
+  
+  function generateSuggestions() {
+    const suggestions = new Set();
+    
+    cards.forEach(card => {
+      const title = card.querySelector('h4').textContent;
+      const description = card.querySelector('p').textContent;
+      const category = card.getAttribute('category');
+      
+      // Extract words from title and description
+      const titleWords = title.split(/[:\s]+/).filter(word => word.length > 2);
+      const descWords = description.split(/\s+/).filter(word => word.length > 3);
+      
+      // Add title words (normalize case and remove punctuation)
+      titleWords.forEach(word => {
+        const cleanWord = word.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanWord.length > 2) suggestions.add(cleanWord);
+      });
+      
+      // Add key description words (first few meaningful words, normalize case and remove punctuation)
+      descWords.slice(0, 3).forEach(word => {
+        const cleanWord = word.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanWord.length > 3) suggestions.add(cleanWord);
+      });
+      
+      // Add category (normalize case)
+      suggestions.add(category.toLowerCase());
+    });
+    
+    return Array.from(suggestions).sort();
+  }
+  
+  const suggestions = generateSuggestions();
+  const searchBox = document.getElementById('searchInput');
+
+searchBox.addEventListener('input', function() {
+  const input = this.value.toLowerCase();
+  const filtered = suggestions.filter(item => item.toLowerCase().startsWith(input));
+  showSuggestions(filtered);
+});
+
+function showSuggestions(arr) {
+  let oldList = document.getElementById('autocomplete-list');
+  if (oldList) oldList.parentNode.removeChild(oldList);
+
+  if (arr.length === 0 || searchBox.value === "") return;
+
+  let list = document.createElement('div');
+  list.setAttribute('id', 'autocomplete-list');
+  list.setAttribute('class', 'autocomplete-items');
+  searchBox.parentNode.appendChild(list);
+
+  arr.forEach(item => {
+    let option = document.createElement('div');
+    option.innerHTML = "<strong>" + item.substr(0, searchBox.value.length) + "</strong>";
+    option.innerHTML += item.substr(searchBox.value.length);
+    option.addEventListener('click', function() {
+      searchBox.value = item;
+      list.parentNode.removeChild(list);
+    });
+    list.appendChild(option);
+  });
+}
+
+// Optional: close suggestions if clicking outside the autocomplete
+document.addEventListener('click', function(e) {
+  let autocompleteList = document.getElementById('autocomplete-list');
+  if (autocompleteList && !autocompleteList.contains(e.target) && e.target !== searchBox) {
+    autocompleteList.parentNode.removeChild(autocompleteList);
+  }
+});
     // 🔍 Search & Filter Logic
     function searchAndFilter() {
       const searchText = searchInput.value.toLowerCase();
@@ -573,6 +652,7 @@
       }
       searchAndFilter();
     });
+    
 
     // 🟢 Toggle and Save Mode
     toggleBtn.addEventListener("click", () => {
@@ -588,17 +668,33 @@
     });
 
     // ⬆️ Back to Top
-    window.onscroll = () => {
-      if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
-        backToTopButton.style.display = "block";
-      } else {
-        backToTopButton.style.display = "none";
-      }
-    };
 
-    backToTopButton.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+const scrollToBottomButton = document.getElementById("scrollToBottom");
+
+
+window.onscroll = () => {
+
+  if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+    backToTopButton.style.display = "block";
+  } else {
+    backToTopButton.style.display = "none";
+  }
+  
+ 
+  const isAtBottom = 
+    window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+  scrollToBottomButton.style.display = isAtBottom ? "none" : "block";
+};
+
+
+backToTopButton.addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+
+scrollToBottomButton.addEventListener("click", () => {
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+});
 
     // ⬇️ Toggle dropdown
     const filterToggle = document.getElementById("filterToggle");
@@ -632,7 +728,7 @@
 
 
 <!-- Floating Share Button -->
-<div id="fab-share-container" style="position: fixed; bottom: 100px; right: 32px; z-index: 1000; display: flex; flex-direction: column; align-items: center;">
+<div id="fab-share-container" style="position: fixed; bottom: 160px; right: 32px; z-index: 1000; display: flex; flex-direction: column; align-items: center;">
   <button id="fab-share" aria-label="Share" style="background: #219EBC; border: none; border-radius: 50%; width: 56px; height: 56px; box-shadow: 0 2px 8px rgba(44,44,44,0.20); cursor: pointer; position: relative;">
     <i class="fas fa-share-alt" style="color:#fff; font-size:28px;"></i>
   </button>
